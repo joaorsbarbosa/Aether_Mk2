@@ -21,7 +21,7 @@ import openpyxl
 
 config = configparser.ConfigParser()
 
-def Mesh_per_volume():
+def mesh_per_volume():
     mesh_x=len(fdtd.getresult("FDTD","x"))
     mesh_y = len(fdtd.getresult("FDTD", "y"))
     mesh_z = len(fdtd.getresult("FDTD", "z"))
@@ -423,7 +423,7 @@ class mywindow(QtWidgets.QMainWindow):
                 self.ui.Results_List.setItem(i, 2, QTableWidgetItem(str(parasitic_Jsc_integrated)))
 
             if self.ui.checkBox_Mesh.isChecked():
-                Mesh_result= Mesh_per_volume()
+                Mesh_result= mesh_per_volume()
                 CIGS_Mesh_list.append(Mesh_result)
 
             self.ui.Files_List.setItem(i, 1, QTableWidgetItem('Processed'))
