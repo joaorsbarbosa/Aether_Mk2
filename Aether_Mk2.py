@@ -141,13 +141,13 @@ def Parasitic_EQE(monitor_Substrate, material_CIGS,tolerance):
 
     return Parasitic_EQE
 
-def Reflection_Results(reflection_monitor):
+def reflection_results(reflection_monitor):
     reflection_data=fdtd.getresult(reflection_monitor,'T')
 
     reflection_eqe=1+reflection_data['T']
     return reflection_eqe
 
-def Electrial_Results(contact_name):
+def electrial_results(contact_name):
 
    electrical_result=charge.getresult('CHARGE',contact_name)
    current=electrical_result['I']
@@ -409,7 +409,7 @@ class mywindow(QtWidgets.QMainWindow):
                 Jsc_integrated=integrate.simps(frequency*qhc*interpolated_AM15G*CIGS_EQE_data,frequency)*0.1 #mA/cm^2
                 CIGS_Jsc_list.append(Jsc_integrated)
                 self.ui.Results_List.setItem(i, 1, QTableWidgetItem(str(Jsc_integrated)))
-                CIGS_Reflection_data=Reflection_Results(Reflection_Monitors)
+                CIGS_Reflection_data=reflection_results(Reflection_Monitors)
 
                 CIGS_Reflection_dataframe.insert(i+1,"Reflection EQE "+files,CIGS_Reflection_data)
 
@@ -586,7 +586,7 @@ class mywindow(QtWidgets.QMainWindow):
 
         for i, sim_name in enumerate(sorted_CHARGE):
             charge.load(sim_name)
-            results=Electrial_Results('Mo_contact')
+            results=electrial_results('Mo_contact')
             #voltage,density,Power,Voc,Jsc,eta,FF,Pmax
 
             if i == 0:
