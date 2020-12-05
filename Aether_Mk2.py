@@ -1,6 +1,6 @@
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets#, QtGui
 
-from PyQt5.QtWidgets import QFileDialog, QAction,QTableWidgetItem
+from PyQt5.QtWidgets import QFileDialog,QTableWidgetItem# QAction,
 from Aether_GUI import Ui_MainWindow  # importing our generated file
 
 import sys
@@ -33,8 +33,8 @@ def mesh_per_volume():
     simulation_z = fdtd.get("z span")
     simulation_volume=simulation_x*simulation_y*simulation_z
 
-    mesh_per_volume=mesh_volume/simulation_volume
-    return mesh_per_volume
+    mesh_volume_ratio=mesh_volume/simulation_volume
+    return mesh_volume_ratio
 
 def File_Sorting(file_extension,work_path):
     os.chdir(work_path)
@@ -45,6 +45,7 @@ def File_Sorting(file_extension,work_path):
     return natsorted(list_of_simulations)
 
 def CIGS_EQE(monitor_CIGS, material_CIGS, generation_toggle,file_name,tolerance):
+    global gen_dataset
     if generation_toggle:
         gen_dataset = fdtd.getresult(monitor_CIGS, "G_export")
     pabs_dataset = fdtd.getresult(monitor_CIGS, "Pabs")
@@ -109,10 +110,10 @@ def CIGS_EQE(monitor_CIGS, material_CIGS, generation_toggle,file_name,tolerance)
 
     return CIGS_EQE
 
-def Parasitic_EQE(monitor_Substrate, material_CIGS,tolerance):
-    pabs_dataset = fdtd.getresult(monitor_Substrate, "Pabs")
-    simulated_index = fdtd.getresult(monitor_Substrate + "::index", "index_x")
-    frequency = np.squeeze(fdtd.getresult(monitor_Substrate + "::index", "f"))
+def parasitic_eqe(monitor_substrate, material_CIGS, tolerance):
+    pabs_dataset = fdtd.getresult(monitor_substrate, "Pabs")
+    simulated_index = fdtd.getresult(monitor_substrate + "::index", "index_x")
+    frequency = np.squeeze(fdtd.getresult(monitor_substrate + "::index", "f"))
     length_f = len(pabs_dataset['f'])
     fourD_material_map = np.empty(shape=(len(pabs_dataset['x']), len(pabs_dataset['y']), len(pabs_dataset['z']), length_f))
     truncated_frequency = frequency[0:1]
@@ -136,10 +137,10 @@ def Parasitic_EQE(monitor_Substrate, material_CIGS,tolerance):
         fourD_material_map[:, :, :, i] = material_map
     # ------------------------------------------------#
     dimensions_integrate = np.arange(1, 4)
-    Parasitic_Pabs_map = pabs_dataset['Pabs'] * fourD_material_map
-    Parasitic_EQE = fdtd.integrate2(Parasitic_Pabs_map, dimensions_integrate, pabs_dataset['x'], pabs_dataset['y'], pabs_dataset['z'])
+    parasitic_Pabs_map = pabs_dataset['Pabs'] * fourD_material_map
+    parasitic_EQE = fdtd.integrate2(parasitic_Pabs_map, dimensions_integrate, pabs_dataset['x'], pabs_dataset['y'], pabs_dataset['z'])
 
-    return Parasitic_EQE
+    return parasitic_EQE
 
 def reflection_results(reflection_monitor):
     reflection_data=fdtd.getresult(reflection_monitor,'T')
@@ -147,7 +148,7 @@ def reflection_results(reflection_monitor):
     reflection_eqe=1+reflection_data['T']
     return reflection_eqe
 
-def electrial_results(contact_name):
+def electrical_results(contact_name):
 
    electrical_result=charge.getresult('CHARGE',contact_name)
    current=electrical_result['I']
@@ -353,7 +354,7 @@ class mywindow(QtWidgets.QMainWindow):
             self.ui.Results_List.setItem(i,2, QTableWidgetItem("0"))
 
             if i == 0:
-                self.ui.Results_List.setHorizontalHeaderLabels(('Simulation Files', 'CIGS Jsc', 'Parasitic Jsc')) #this only needs to run once to set the name of the headers
+                self.ui.Results_List.setHorizontalHeaderLabels(('Simulation Files', 'CIGS Jsc', 'parasitic Jsc')) #this only needs to run once to set the name of the headers
 
                 fdtd = lumapi.FDTD(hide=False, filename=files)
                 if not fdtd.havedata(CIGS_Monitors):
@@ -366,7 +367,7 @@ class mywindow(QtWidgets.QMainWindow):
                     CIGS_Jsc_list = []
                     CIGS_Reflection_dataframe = pandas.DataFrame(nu2lambda(np.squeeze(fdtd.getresult(Reflection_Monitors, "f"))), columns=['λ'])
                 if self.ui.checkBox_Parasit.isChecked():
-                    Parasitic_EQE_dataframe = pandas.DataFrame(nu2lambda(np.squeeze(fdtd.getresult(CIGS_Monitors,"f"))),columns=['λ'])
+                    parasitic_EQE_dataframe = pandas.DataFrame(nu2lambda(np.squeeze(fdtd.getresult(CIGS_Monitors,"f"))),columns=['λ'])
                     parasitic_Jsc_list = []
 
                 if self.ui.checkBox_export_charge.isChecked():
@@ -415,10 +416,10 @@ class mywindow(QtWidgets.QMainWindow):
 
             if self.ui.checkBox_Parasit.isChecked():
                 tolerance = float(self.ui.doubleSpinBox.text())
-                Parasitic_EQE_data = Parasitic_EQE(Substrate_Monitors,CIGS_Material,tolerance)
-                Parasitic_EQE_data =Parasitic_EQE_data.flatten()
-                Parasitic_EQE_dataframe.insert(i+1,"Parasitic EQE "+files,Parasitic_EQE_data)
-                parasitic_Jsc_integrated= integrate.simps(frequency*qhc*interpolated_AM15G*Parasitic_EQE_data,frequency)*0.1
+                parasitic_EQE_data = parasitic_eqe(Substrate_Monitors, CIGS_Material, tolerance)
+                parasitic_EQE_data =parasitic_EQE_data.flatten()
+                parasitic_EQE_dataframe.insert(i+1,"parasitic EQE "+files,parasitic_EQE_data)
+                parasitic_Jsc_integrated= integrate.simps(frequency*qhc*interpolated_AM15G*parasitic_EQE_data,frequency)*0.1
                 parasitic_Jsc_list.append(parasitic_Jsc_integrated)
                 self.ui.Results_List.setItem(i, 2, QTableWidgetItem(str(parasitic_Jsc_integrated)))
 
@@ -439,10 +440,10 @@ class mywindow(QtWidgets.QMainWindow):
             CIGS_Jsc_dataframe.to_excel('CIGS_Jsc.xlsx', index=False)
 
         if self.ui.checkBox_Parasit.isChecked():
-            Parasitic_EQE_dataframe.to_excel('Parasitic_EQE.xlsx', index=False)
+            parasitic_EQE_dataframe.to_excel('parasitic_eqe.xlsx', index=False)
             parasitic_Jsc_dict = dict(zip(sorted_FDTD, parasitic_Jsc_list))
             parasitic_Jsc_dataframe = pandas.DataFrame([parasitic_Jsc_dict])
-            parasitic_Jsc_dataframe.to_excel('Parasitic_Jsc.xlsx', index=False)
+            parasitic_Jsc_dataframe.to_excel('parasitic_Jsc.xlsx', index=False)
 
         if self.ui.checkBox_export_charge.isChecked():
             model_dataframe.to_csv("model_dataframe.csv", index=False)
@@ -586,7 +587,7 @@ class mywindow(QtWidgets.QMainWindow):
 
         for i, sim_name in enumerate(sorted_CHARGE):
             charge.load(sim_name)
-            results=electrial_results('Mo_contact')
+            results=electrical_results('Mo_contact')
             #voltage,density,Power,Voc,Jsc,eta,FF,Pmax
 
             if i == 0:
