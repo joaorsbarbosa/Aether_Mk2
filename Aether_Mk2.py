@@ -28,4 +28,5 @@ def sim_file_sorting(file_extension, work_path):
  #   x_mesh =len()
 
 def results_absorber (monitor_absorber, material_absorber, generation_map_toggle, index_tolerance, file_name):
-    power_absorption_dataset=fdtd.getresult(monitor_absorber, config['Monitors']['Absorber_Monitors']['Power_Variable'])
+    power_absorption_dataset=fdtd.getresult(monitor_absorber,)
+
